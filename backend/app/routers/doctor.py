@@ -7,11 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import PatientQuery, QueryStatus
+from app.models import PatientQuery, QueryStatus, DepartmentConfig, Department
 from app.schemas import (
     DoctorQueryListItem,
     DoctorReviewRequest,
     PatientQueryResponse,
+    DepartmentConfigResponse,
+    DepartmentConfigUpdate,
 )
 
 router = APIRouter(prefix="/api/doctor", tags=["Doctor"])
@@ -59,3 +61,41 @@ def review_query(
     db.commit()
     db.refresh(query)
     return query
+
+
+# ── Department Configuration ────────────────────────────────────────────
+
+_VALID_DEPARTMENTS = {d.value for d in Department}
+
+
+@router.get("/config/department", response_model=DepartmentConfigResponse)
+def get_department_config(db: Session = Depends(get_db)):
+    """Return the current department configuration."""
+    config = db.query(DepartmentConfig).filter(DepartmentConfig.id == "singleton").first()
+    if not config:
+        config = DepartmentConfig(id="singleton", department=Department.GENERAL)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+
+@router.put("/config/department", response_model=DepartmentConfigResponse)
+def update_department_config(
+    payload: DepartmentConfigUpdate, db: Session = Depends(get_db)
+):
+    """Update the response department setting."""
+    if payload.department not in _VALID_DEPARTMENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid department. Must be one of: {', '.join(sorted(_VALID_DEPARTMENTS))}",
+        )
+    config = db.query(DepartmentConfig).filter(DepartmentConfig.id == "singleton").first()
+    if not config:
+        config = DepartmentConfig(id="singleton", department=payload.department)
+        db.add(config)
+    else:
+        config.department = payload.department
+    db.commit()
+    db.refresh(config)
+    return config

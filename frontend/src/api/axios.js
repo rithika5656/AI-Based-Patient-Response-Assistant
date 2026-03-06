@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+  baseURL: process.env.REACT_APP_API_URL || "",
 });
 
 // ── Patient APIs ────────────────────────────────────────────────────────
@@ -22,5 +22,13 @@ export const getDoctorQueryById = (queryId) =>
 
 export const reviewQuery = (queryId, data) =>
   API.put(`/api/doctor/query/${queryId}`, data);
+
+// ── Department Config APIs ───────────────────────────────────────────
+
+export const getDepartmentConfig = () =>
+  API.get("/api/doctor/config/department");
+
+export const updateDepartmentConfig = (department) =>
+  API.put("/api/doctor/config/department", { department });
 
 export default API;

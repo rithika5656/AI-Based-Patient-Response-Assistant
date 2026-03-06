@@ -24,6 +24,7 @@ class PatientQueryResponse(BaseModel):
     question: str
     ai_response: Optional[str] = None
     doctor_response: Optional[str] = None
+    department: Optional[str] = None
     status: str
     created_at: datetime
     reviewed_at: Optional[datetime] = None
@@ -52,8 +53,26 @@ class DoctorQueryListItem(BaseModel):
     patient_name: str
     question: str
     ai_response: Optional[str] = None
+    department: Optional[str] = None
     status: str
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+# ────────────────────── Department Config Schemas ────────────────────────
+
+
+class DepartmentConfigResponse(BaseModel):
+    department: str
+
+    class Config:
+        from_attributes = True
+
+
+class DepartmentConfigUpdate(BaseModel):
+    department: str = Field(
+        ..., example="General",
+        description="One of: General, Billing, Scheduling, Medical Query",
+    )

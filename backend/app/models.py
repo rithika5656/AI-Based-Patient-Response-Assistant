@@ -7,6 +7,13 @@ import enum
 from app.database import Base
 
 
+class Department(str, enum.Enum):
+    GENERAL = "General"
+    BILLING = "Billing"
+    SCHEDULING = "Scheduling"
+    MEDICAL_QUERY = "Medical Query"
+
+
 class QueryStatus(str, enum.Enum):
     PENDING = "pending"          # AI response generated, waiting for doctor
     REVIEWED = "reviewed"        # Doctor has approved / edited the response
@@ -30,4 +37,18 @@ class PatientQuery(Base):
     created_at = Column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
+    department = Column(
+        String, nullable=False, default=Department.GENERAL.value
+    )
     reviewed_at = Column(DateTime, nullable=True)
+
+
+class DepartmentConfig(Base):
+    """Stores the current department configuration (single-row table)."""
+
+    __tablename__ = "department_config"
+
+    id = Column(String, primary_key=True, default="singleton")
+    department = Column(
+        String, nullable=False, default=Department.GENERAL.value
+    )

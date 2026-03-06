@@ -6,11 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import PatientQuery
+from app.models import PatientQuery, DepartmentConfig, Department
 from app.schemas import PatientQueryCreate, PatientQueryResponse
 from app.services.gemini_service import generate_ai_response
 
 router = APIRouter(prefix="/api/patient", tags=["Patient"])
+
+
+def _get_current_department(db: Session) -> str:
+    """Read the current department from config, defaulting to General."""
+    config = db.query(DepartmentConfig).filter(DepartmentConfig.id == "singleton").first()
+    if config:
+        return config.department
+    return Department.GENERAL.value
 
 
 @router.post("/query", response_model=PatientQueryResponse)
@@ -22,18 +30,22 @@ async def submit_query(payload: PatientQueryCreate, db: Session = Depends(get_db
     • Call Google Gemini AI to generate a draft response
     • Store the AI response and return it
     """
+    # Get the current department setting
+    department = _get_current_department(db)
+
     # Create the database record
     query = PatientQuery(
         patient_id=payload.patient_id,
         patient_name=payload.patient_name,
         question=payload.question,
+        department=department,
     )
     db.add(query)
     db.commit()
     db.refresh(query)
 
-    # Call Gemini AI
-    ai_text = await generate_ai_response(payload.question)
+    # Call AI with department context
+    ai_text = await generate_ai_response(payload.question, department)
 
     # Persist the AI-generated response
     query.ai_response = ai_text
